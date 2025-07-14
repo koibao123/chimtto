@@ -70,8 +70,11 @@
                 <h2 class="text-xl font-semibold mb-4 text-center">Bản đồ trận đấu</h2>
                 <div id="map" class="shadow-md"></div>
                 <div class="mt-4 flex justify-center space-x-4">
-                    <button id="shareBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg transition w-full md:w-auto">
-                        Bắt đầu chia sẻ
+                    <button id="shareScreenBtn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition w-full md:w-auto mr-2">
+                        Chia sẻ màn hình
+                    </button>
+                    <button id="shareAudioBtn" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition w-full md:w-auto">
+                        Chia sẻ thoại
                     </button>
                     <button id="stopShareBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition" disabled>
                         Dừng chia sẻ
@@ -210,24 +213,62 @@
             `;
         }
 
-        // Hàm kết nối với stream của người khác (mô phỏng)
-        window.connectToStream = function(roomId) {
-            screenShare.innerHTML = `
-                <video autoplay playsinline class="w-full h-full"></video>
-            `;
-            const videoElement = screenShare.querySelector('video');
-            
-            // Trong ứng dụng thực tế, bạn sẽ kết nối với stream thông qua WebRTC
-            // Ở đây chỉ mô phỏng bằng 1 video placeholder
-            videoElement.src = "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4";
-            videoElement.play().catch(e => console.error(e));
+        // Handle connecting to another peer
+        window.connectToStream = async function(roomId) {
+            try {
+                peerConnection = createPeerConnection();
+                
+                // Setup remote video
+                screenShare.innerHTML = '<video autoplay playsinline></video>';
+                const video = screenShare.querySelector('video');
+                
+                // When remote stream arrives, show it
+                peerConnection.ontrack = event => {
+                    video.srcObject = event.streams[0];
+                };
+                
+                // Handle ICE candidates
+                peerConnection.onicecandidate = event => {
+                    if (event.candidate) {
+                        // Normally you'd send this to signaling server
+                        console.log('New ICE Candidate:', event.candidate);
+                    }
+                };
+                
+                // Create offer
+                const offer = await peerConnection.createOffer();
+                await peerConnection.setLocalDescription(offer);
+                
+                // Here you would normally send the offer via signaling server
+                console.log('Created offer:', offer);
+                
+            } catch (err) {
+                console.error('Connection error:', err);
+            }
         };
 
-        // Bắt đầu chia sẻ màn hình
-        document.getElementById('shareScreenBtn').addEventListener('click', shareHandler);
-        document.getElementById('shareAudioBtn').addEventListener('click', shareHandler);
+        let peerConnection = null;
+        let localStream = null;
+        const connectedUsers = [];
         
-        async function shareHandler(event) {
+        function createPeerConnection() {
+            const pc = new RTCPeerConnection({
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' }
+                ]
+            });
+            
+            if (localStream) {
+                localStream.getTracks().forEach(track => 
+                    pc.addTrack(track, localStream)
+                );
+            }
+            
+            return pc;
+        }
+        
+        // Main share function that handles both screen and audio
+        shareBtn.addEventListener('click', async () => {
             try {
                 // Yêu cầu quyền chia sẻ màn hình
                 // Check if we want screen sharing or audio sharing
