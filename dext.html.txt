@@ -8,6 +8,16 @@
     video {
       width: 100%;
       height: auto;
+      border: 2px solid #ccc;
+    }
+    button {
+      padding: 10px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -17,27 +27,25 @@
   <video id="sharedScreen" autoplay></video>
   
   <script>
-    let localStream = null;
-
     const startShareBtn = document.getElementById("startShareBtn");
     const sharedScreen = document.getElementById("sharedScreen");
 
-    startShareBtn.onclick = startScreenShare;
-
-    async function startScreenShare() {
+    // Khi người dùng nhấn nút, bắt đầu chia sẻ màn hình
+    startShareBtn.onclick = async function() {
       try {
-        // Yêu cầu quyền truy cập chia sẻ màn hình từ trình duyệt
+        // Yêu cầu quyền chia sẻ màn hình từ trình duyệt
         const stream = await navigator.mediaDevices.getDisplayMedia({
           video: true
         });
 
         // Hiển thị màn hình đã chia sẻ lên video element
         sharedScreen.srcObject = stream;
-        
+
       } catch (err) {
         console.error("Lỗi khi chia sẻ màn hình:", err);
+        alert("Không thể chia sẻ màn hình: " + err.message);
       }
-    }
+    };
   </script>
 </body>
 </html>
